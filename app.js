@@ -5,22 +5,24 @@ import express from 'express';
 import connection from './db/connection.js';
 
 import productsRoutes from './src/routes/productRoutes.js';
+import authRoutes from './src/routes/authRoutes.js';
+import secureRoutes from './src/routes/secureRoutes.js';  // 👈 nuevo router
 import cors from 'cors';
 
-// Inicializa la aplicación
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(express.json()); // <-- Agrega esta línea
-
+app.use(express.json());
 app.use(cors());
-app.use("/products", productsRoutes);
 
+// Rutas
+app.use("/products", productsRoutes);
+app.use("/auth", authRoutes);
+app.use("/secure", secureRoutes);  // 👈 todas las rutas seguras aquí
 
 // Ruta principal
 app.get('/', async (req, res) => {
   try {
-    // Prueba una consulta simple
     const [rows] = await connection.query('SELECT 1');
     res.send('Conexión exitosa a la base de datos!');
   } catch (error) {
@@ -28,12 +30,10 @@ app.get('/', async (req, res) => {
   }
 });
 
-
 app.get("/api/data", (req, res) => {
   res.json({ msg: "Hola desde el servidor" });
 });
 
-// Inicia el servidor
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });

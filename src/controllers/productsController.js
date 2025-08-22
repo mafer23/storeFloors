@@ -1,21 +1,46 @@
-import e from "cors";
+
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import * as productService from "../services/productService.js";
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export async function getProducts(req, res) {
   try {
     const products = await productService.getProducts();
-    res.json(products);
+    const imagesDir = path.join(__dirname, "../utils/image");
+
+    const productsWithImages = products.map(product => {
+      const files = fs.readdirSync(imagesDir);
+      const imageFile = files.find(file =>
+        file.toLowerCase().startsWith(product.nombre_producto.toLowerCase()) ||
+        file.startsWith(String(product.id))
+      );
+
+      const imagen_url = imageFile ? `/utils/image/${imageFile}` : null;
+
+      return { ...product, imagen_url };
+    });
+
+    res.json(productsWithImages);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 }
-
 export async function createProduct(req, res) {
   try {
     const { nombre_producto, descripcion, precio, stock, id_categoria, id_estado } = req.body;
 
     if (!nombre_producto || !precio || !stock || !id_categoria || !id_estado) {
       return res.status(400).json({ error: "Faltan campos obligatorios" });
+    }
+
+    if (!req.file) {
+      console.warn("No se subió imagen, solo se guardará el producto en la BD.");
     }
 
     const newProduct = await productService.createProduct({
@@ -27,11 +52,18 @@ export async function createProduct(req, res) {
       id_estado
     });
 
-    res.status(201).json(newProduct);
+    res.status(201).json({
+      mensaje: "Producto creado correctamente",
+      producto: newProduct,
+      imagen_guardada: req.file ? `/utils/image/${req.file.filename}` : null
+    });
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 }
+
 
 export async function getProductById(req, res) {
   
@@ -46,7 +78,6 @@ export async function getProductById(req, res) {
 
 
 }
-
 export async function updateProduct(req, res) {
   try {
     const { id } = req.params;
@@ -56,17 +87,47 @@ export async function updateProduct(req, res) {
       return res.status(400).json({ error: "Faltan campos obligatorios" });
     }
 
+    // Buscar producto actual
+    const currentProduct = await productService.getProductById(id);
+    if (!currentProduct) {
+      return res.status(404).json({ error: "Producto no encontrado" });
+    }
+
+    let imagePath = currentProduct.imagen;
+
+    // Si viene una nueva imagen
+    if (req.file) {
+      if (imagePath) {
+        const oldImagePath = path.resolve(__dirname, `../${imagePath}`);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+          console.log(`✅ Imagen anterior eliminada: ${oldImagePath}`);
+        }
+      }
+
+      // Guardamos la nueva ruta en BD
+      imagePath = `utils/image/${req.file.filename}`;
+    }
+
+    // Actualizamos producto en BD
     const updatedProduct = await productService.updateProduct(id, {
       nombre_producto,
       descripcion,
       precio,
       stock,
       id_categoria,
-      id_estado
+      id_estado,
+      imagen: imagePath
     });
 
-    res.json(updatedProduct);
+    res.json({
+      mensaje: "Producto actualizado correctamente",
+      producto: updatedProduct,
+      imagen_guardada: imagePath
+    });
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 }
@@ -74,9 +135,32 @@ export async function updateProduct(req, res) {
 export async function deleteProduct(req, res) {
   try {
     const { id } = req.params;
+
+    const product = await productService.getProductById(id);
+    if (!product) {
+      return res.status(404).json({ error: "Producto no encontrado" });
+    }
+
+    const imagesDir = path.join(__dirname, "../utils/image");
+
+    const files = fs.readdirSync(imagesDir);
+    const imageFile = files.find(file =>
+      file.startsWith(product.nombre_producto) || file.startsWith(id)
+    );
+
+    if (imageFile) {
+      const imagePath = path.join(imagesDir, imageFile);
+      fs.unlinkSync(imagePath);
+    } else {
+      return res.status(400).json({ error: "Faltan campos obligatorios" });
+    }
+
     await productService.deleteProduct(id);
-    res.json({ message: "Producto eliminado" });
+
+    res.json({ message: "Producto e imagen eliminados correctamente" });
+
   } catch (err) {
+    
     res.status(500).json({ error: "Error interno del servidor" });
   }
 }

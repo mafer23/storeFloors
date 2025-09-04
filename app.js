@@ -5,6 +5,7 @@ import express from 'express';
 import connection from './db/connection.js';
 
 import productsRoutes from './src/routes/productRoutes.js';
+import pedidoRoutes from "./src/routes/pedidoRoutes.js";
 import authRoutes from './src/routes/authRoutes.js';
 import secureRoutes from './src/routes/secureRoutes.js';  // 👈 nuevo router
 import cors from 'cors';
@@ -19,7 +20,7 @@ app.use(cors());
 app.use("/products", productsRoutes);
 app.use("/auth", authRoutes);
 app.use("/secure", secureRoutes);  // 👈 todas las rutas seguras aquí
-
+app.use("/pedidos", pedidoRoutes); 
 // Ruta principal
 app.get('/', async (req, res) => {
   try {

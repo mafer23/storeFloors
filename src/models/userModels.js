@@ -3,7 +3,7 @@ import pool from "../../db/connection.js";  // 👈 agrega la extensión
 // Buscar usuario por email
 export async function findUserByEmail(email) {
   const [rows] = await pool.query(
-    "SELECT * FROM usuario WHERE Email = ? LIMIT 1",
+    "SELECT * FROM usuario WHERE Email = ? LIMIT 1", // ese script especifico limit 1
     [email]
   );
   return rows[0];
@@ -12,7 +12,7 @@ export async function findUserByEmail(email) {
 // Buscar usuario por ID
 export async function findUserById(id) {
   const [rows] = await pool.query(
-    `SELECT id_usuario, Name, Email, telefono, direccion, fecha_registro, activo 
+    `SELECT id_usuario, name, email, telefono, direccion, fecha_registro, activo 
      FROM usuario WHERE id_usuario = ?`,
     [id]
   );

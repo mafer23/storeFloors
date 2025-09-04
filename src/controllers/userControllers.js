@@ -15,6 +15,7 @@ export async function register(req, res) {
 export async function login(req, res) {
   try {
     const { Email, Password } = req.body;
+    console.log(req)
     const { user, token } = await loginUser({ Email, Password });
 
     res.json({ message: "Login exitoso", user, token });

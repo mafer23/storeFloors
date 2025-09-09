@@ -1,6 +1,6 @@
 // src/routes/pedidoRoutes.js
 import { Router } from 'express';
-import { createPedidoController, getDetallesController, getPedidosAdminController,getPedidosUsuarioController,getPedidoDetallesController} from '../controllers/pedidoController.js';
+import { createPedidoController, getPedidosAdminController,getPedidosUsuarioController,getPedidoDetallesController} from '../controllers/pedidoController.js';
 
 const router = Router();
 

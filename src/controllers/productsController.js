@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import * as productService from "../services/productService.js";
-
+import { sanitizeName } from "../middlewares/uploadImage.js"; 
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -78,6 +78,7 @@ export async function getProductById(req, res) {
 
 
 }
+
 export async function updateProduct(req, res) {
   try {
     const { id } = req.params;
@@ -87,29 +88,44 @@ export async function updateProduct(req, res) {
       return res.status(400).json({ error: "Faltan campos obligatorios" });
     }
 
-    // Buscar producto actual
+    
     const currentProduct = await productService.getProductById(id);
     if (!currentProduct) {
       return res.status(404).json({ error: "Producto no encontrado" });
     }
 
-    let imagePath = currentProduct.imagen;
+  let imagePath = null; 
 
-    // Si viene una nueva imagen
     if (req.file) {
-      if (imagePath) {
-        const oldImagePath = path.resolve(__dirname, `../${imagePath}`);
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
-          console.log(`✅ Imagen anterior eliminada: ${oldImagePath}`);
-        }
-      }
 
-      // Guardamos la nueva ruta en BD
+      const baseName = sanitizeName(nombre_producto);
+      const dir = path.resolve(process.cwd(), "src/utils/image");
+
+      const files = fs.readdirSync(dir);
+
+
+      files.forEach(file => {
+        const fileBase = path.basename(file, path.extname(file));
+
+        if (fileBase.toLowerCase() === baseName.toLowerCase()) {
+          if (req.file && file === req.file.filename) {
+            return; 
+          }
+
+          
+          const filePath = path.join(dir, file);
+          try {
+            fs.unlinkSync(filePath);
+          } catch (err) {
+            console.error("⚠️ Error al eliminar:", filePath, err);
+          }
+        }
+      });
+
       imagePath = `utils/image/${req.file.filename}`;
     }
 
-    // Actualizamos producto en BD
+
     const updatedProduct = await productService.updateProduct(id, {
       nombre_producto,
       descripcion,
